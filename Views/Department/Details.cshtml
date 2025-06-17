@@ -1,0 +1,183 @@
+﻿@using Presentation.Models
+@model Presentation.Models.DepartmentViewModel
+
+
+@{
+    ViewData["Title"] = "Department Details";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Department Details</h4>
+                    <div>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <strong>Department Name:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <h5 class="text-primary">@Model.Name</h5>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <strong>Description:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    @if (!string.IsNullOrEmpty(Model.Description))
+                                    {
+                                        <p>@Model.Description</p>
+                                    }
+                                    else
+                                    {
+                                        <em class="text-muted">No description provided</em>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <strong>Status:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    @if (Model.IsActive)
+                                    {
+                                        <span class="badge bg-success fs-6">
+                                            <i class="fas fa-check-circle"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary fs-6">
+                                            <i class="fas fa-times-circle"></i> Inactive
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <strong>Employee Count:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <span class="badge bg-info fs-6">
+                                        <i class="fas fa-users"></i> @Model.EmployeeCount employees
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <strong>Created Date:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <span class="text-muted">
+                                        <i class="fas fa-calendar-alt"></i> @Model.CreatedAt.ToString("MMMM dd, yyyy 'at' hh:mm tt")
+                                    </span>
+                                </div>
+                            </div>
+
+                            @if (Model.UpdatedAt != Model.CreatedAt)
+                            {
+                                <div class="row mb-3">
+                                    <div class="col-sm-3">
+                                        <strong>Last Updated:</strong>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <span class="text-muted">
+                                            <i class="fas fa-edit"></i> @Model.UpdatedAt.ToString("MMMM dd, yyyy 'at' hh:mm tt")
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="row mb-3">
+                                <div class="col-sm-3">
+                                    <strong>Department ID:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <code>@Model.Id</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-chart-bar"></i> Department Statistics
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <div class="mb-3">
+                                            <h2 class="text-primary">@Model.EmployeeCount</h2>
+                                            <p class="text-muted mb-0">Total Employees</p>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <small class="text-muted">
+                                                Department created @((DateTime.Now - Model.CreatedAt).Days) days ago
+                                            </small>
+                                        </div>
+
+                                        @if (Model.EmployeeCount > 0)
+                                        {
+                                            <div class="d-grid">
+                                                <a href="@Url.Action("ViewEmployees", "Department", new { departmentId = Model.Id })" 
+                                                    class="btn btn-primary">
+                                                    View Employees
+                                                </a>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="alert alert-info py-2">
+                                                <small>
+                                                    <i class="fas fa-info-circle"></i>
+                                                    No employees assigned yet
+                                                </small>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Quick Actions</h6>
+                                <div class="btn-group">
+                                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-warning">
+                                        <i class="fas fa-edit"></i> Edit Department
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" onclick="confirmDelete('@Model.Id', '@Model.Name')">
+                                        <i class="fas fa-trash"></i> Delete Department
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
