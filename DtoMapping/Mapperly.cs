@@ -1,6 +1,5 @@
 ﻿using Application.Dtos;
 using Presentation.Models;
-using Presentation.Controllers;
 namespace Presentation.DtoMapping;
 
 public static class Mapperly
@@ -46,6 +45,53 @@ public static class Mapperly
                 .Where(d => d != null)
                 .Select(d => d.ToDto())
                 .ToList() ?? []
+        };
+    }
+    public static CreateAddressDto ToDto(this CreateAddressViewModel address)
+    {
+        return new CreateAddressDto
+        {
+            EmployeeId = address.EmployeeId,
+            Street = address.Street,
+            City = address.City,
+            State = address.State,
+            Country = address.Country
+        };
+    }
+    public static UpdateAddressViewModel ToUpdateAddressViewModel(this AddressDto dto)
+    {
+        return new UpdateAddressViewModel
+        {
+            Id = dto.Id,
+            EmployeeId = dto.EmployeeId,
+            Street = dto.Street,
+            City = dto.City,
+            State = dto.State,
+            Country = dto.Country
+        };
+    }
+    public static AddressDto ToDto(this UpdateAddressViewModel model)
+    {
+        return new AddressDto
+        {
+            Id = model.Id,
+            EmployeeId = model.EmployeeId,
+            Street = model.Street,
+            City = model.City,
+            State = model.State,
+            Country = model.Country
+        };
+    }
+    public static UpdateAddressDto ToUpdateDto(this UpdateAddressViewModel model)
+    {
+        return new UpdateAddressDto
+        {
+            Id = model.Id,
+            EmployeeId = model.EmployeeId,
+            Street = model.Street,
+            City = model.City,
+            State = model.State,
+            Country = model.Country
         };
     }
 }

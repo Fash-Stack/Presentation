@@ -1,10 +1,10 @@
 ﻿@using Presentation.Models
 @using Presentation.Data
+@model DepartmentsViewModel
 
 @{
     ViewData["Title"] = "Departments";
 }
-@model DepartmentsViewModel
 
 <h1>@ViewData["Title"]</h1>
 
@@ -21,6 +21,7 @@ else
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Employee Count</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -30,6 +31,7 @@ else
             {
                 <tr>
                     <td>@item.Name</td>
+                    <td>@item.EmployeeCount</td>
                     <td>
                         <div class="btn-group" role="group">
                             <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm" style="margin-right: 12px; border-radius: 4px; padding: 4px 12px;">Detail</a>

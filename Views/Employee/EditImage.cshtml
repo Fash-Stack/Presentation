@@ -1,0 +1,40 @@
+﻿@model Presentation.Models.EmployeeViewModel
+
+@{
+    ViewData["Title"] = "Edit Profile Image";
+}
+
+<h2>Edit Profile Image</h2>
+
+<div class="card">
+    <div class="card-body">
+
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <strong>Current Image:</strong>
+                <img src="@Model.ImageUrl" alt="Profile Image" class="img-thumbnail" style="width: 120px; height: 120px;" />
+            </div>
+        }
+        else
+        {
+            <p>No Profile Image Available.</p>
+        }
+
+        <form asp-action="EditImage" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="Image" class="form-label">Select New Image</label>
+                <input type="file" class="form-control" asp-for="Image" accept="image/*" required />
+                <span asp-validation-for="Image" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update Image</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">Back to Details</a>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,9 +1,12 @@
+using Data.Context;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Presentation.Data.Models;
-using Presentation.EmailServices;
 using Presentation.Models;
+using Data.Model;
 
 namespace Presentation.Controllers
 {
@@ -12,12 +15,14 @@ namespace Presentation.Controllers
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly IEmailSender _emailSender;
+        private readonly EmployeeAppDbContext _context;
 
-        public AccountController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IEmailSender emailSender)
+        public AccountController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IEmailSender emailSender, EmployeeAppDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
+            _context = context;
         }
         public IActionResult Index()
         {
@@ -32,7 +37,7 @@ namespace Presentation.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(RegisteredViewModel model)
         {
-            
+
             if (ModelState.IsValid)
             {
                 var user = new IdentityUser
@@ -44,20 +49,20 @@ namespace Presentation.Controllers
                 var result = await _userManager.CreateAsync(user, model.Password);
 
                 if (result.Succeeded)
-                    {
-                        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                        var confirmationLink = Url.Action(
-                            nameof(ConfirmEmail), "Account",
-                            new { userId = user.Id, token = token },
-                            protocol: Request.Scheme);
+                {
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var confirmationLink = Url.Action(
+                        nameof(ConfirmEmail), "Account",
+                        new { userId = user.Id, token = token },
+                        protocol: Request.Scheme);
 
-                        await _emailSender.SendEmailAsync(
-                            user.Email,
-                            "Confirm your email",
-                            $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>");
+                    await _emailSender.SendEmailAsync(
+                        user.Email,
+                        "Confirm your email",
+                        $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>");
 
-                        return View("RegistrationSuccessful");
-                    }
+                    return View("RegistrationSuccessful");
+                }
 
                 var errorMessage = string.Join("<br>", result.Errors.Select(e => e.Description));
                 SetFlashMessage(errorMessage, "error");
@@ -79,7 +84,7 @@ namespace Presentation.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, "User");
-                return View("EmailConfirmed"); 
+                return View("EmailConfirmed");
             }
 
             return View("Error");
@@ -93,26 +98,43 @@ namespace Presentation.Controllers
         [HttpPost]
         public async Task<IActionResult> LogIn(LogInViewModel model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
             {
-                var result = await _signInManager.PasswordSignInAsync(
-                    model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return View(model);
+            }
 
-                if (result.Succeeded)
-                {
-                    var user = await _userManager.FindByEmailAsync(model.Email);
-                    
-                    if (user != null && !await _userManager.IsEmailConfirmedAsync(user))
-                    {
-                        await _signInManager.SignOutAsync(); 
-                        SetFlashMessage("You need to confirm your email before logging in.", "error");
-                        return View(model);
-                    }
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                ModelState.AddModelError(string.Empty, "Your account is locked. Please try again later.");
+                return View(model);
+            }
 
-                    return RedirectToAction("Index", "Home");
-                }
+            if (!await _userManager.IsEmailConfirmedAsync(user))
+            {
+                ModelState.AddModelError(string.Empty, "You need to confirm your email before logging in.");
+                return View(model);
+            }
 
-                SetFlashMessage("Invalid login attempt!", "error");
+            var result = await _signInManager.PasswordSignInAsync(
+                user.UserName, model.Password, model.RememberMe, lockoutOnFailure: true);
+
+            if (result.Succeeded)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (result.IsLockedOut)
+            {
+                ModelState.AddModelError(string.Empty, "Your account has been locked due to multiple failed login attempts.");
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }
 
             return View(model);
@@ -142,7 +164,7 @@ namespace Presentation.Controllers
             }
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var callbackUrl = Url.Action("ResetPassword", "Account", 
+            var callbackUrl = Url.Action("ResetPassword", "Account",
                 new { token, email = user.Email }, Request.Scheme);
 
             await _emailSender.SendEmailAsync(user.Email, "Reset Password",
@@ -247,5 +269,67 @@ namespace Presentation.Controllers
             return View(model);
         }
 
+        [Authorize]
+        public IActionResult ChangePassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return RedirectToAction("LogIn");
+
+            var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+
+            if (result.Succeeded)
+            {
+                await _signInManager.RefreshSignInAsync(user);
+                TempData["Message"] = "Password changed successfully.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return View(model);
+        }
+
+        //     public IActionResult AddAddress(Guid id)
+        //     {
+        //         var model = new AddressViewModel { EmployeeId = id };
+        //         return View(model);
+        //     }
+
+        //     [HttpPost]
+        //     public async Task<IActionResult> AddAddress(AddressViewModel model)
+        //     {
+        //         if (ModelState.IsValid)
+        //         {
+        //             var address = new EmployeeAddress
+        //             {
+        //                 State = model.State,
+        //                 City = model.City,
+        //                 Street = model.Street,
+        //                 EmployeeId = model.EmployeeId
+        //             };
+
+        //             _context.Add(address);
+        //             await _context.SaveChangesAsync();
+        //             return RedirectToAction("Details", new { id = model.EmployeeId });
+        //         }
+
+        //         return View(model);
+        //     }
+
+        // }
     }
 }

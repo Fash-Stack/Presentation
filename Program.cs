@@ -1,11 +1,12 @@
 using Data.Context;
-using MySql.EntityFrameworkCore.Extensions;
 using Application;
 using Microsoft.AspNetCore.Identity;
 using Presentation.EmailServices;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using CloudinaryDotNet;
+using Presentation.CloudinarySettings;
+using Application.Services.Address;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,6 +59,25 @@ builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 
 builder.Services.AddTransient<IEmailSender, EmailSender>();
+
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5); 
+    options.Lockout.MaxFailedAccessAttempts = 3;                     
+    options.Lockout.AllowedForNewUsers = true;                       
+});
+
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.
+    GetSection("CloudinarySettings"));
+builder.Services.AddSingleton(provider =>
+{
+    var config = builder.Configuration.GetSection("CloudinarySettings").Get<CloudinarySettings>();
+    var account = new Account(config.CloudName, config.ApiKey, config.ApiSecret);
+    return new Cloudinary(account);
+});
+
+builder.Services.AddScoped<IAddressService, AddressService>();
+
 
 var app = builder.Build();
 

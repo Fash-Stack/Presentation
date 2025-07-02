@@ -5,13 +5,13 @@
 <form asp-action="EditProfile" method="post">
     <input type="hidden" asp-for="Id" />
 
-    <div>
+    <div class="mb-3">
         <label>Email</label>
         <input asp-for="Email" class="form-control" />
         <span asp-validation-for="Email" class="text-danger"></span>
     </div>
 
-    <div>
+    <div class="mb-3">
         <label>Username</label>
         <input asp-for="UserName" class="form-control" />
         <span asp-validation-for="UserName" class="text-danger"></span>

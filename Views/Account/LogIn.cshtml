@@ -6,6 +6,18 @@
 
 <h1>@ViewData["Title"]</h1>
 
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+
 <form asp-action="LogIn">
     <div class="mb-3">
         <label asp-for="Email" class="form-label"></label>
@@ -14,7 +26,7 @@
     </div>
     <div class="mb-3">
         <label asp-for="Password" class="form-label"></label>
-        <input asp-for="Password" class="form-control" />
+        <input asp-for="Password" class="form-control" type="password" required/>
         <span asp-validation-for="Password" class="text-danger"></span>
     </div>
     <div class="mb-3">
@@ -23,7 +35,7 @@
     </div>
     <div class="mb-3">
         <p>
-            Forgot your password? <a asp-action="ForgotPassword" asp-controller="Account"  class="btn btn-outline-success btn-sm">Reset here</a>
+            Forgot your password? <a asp-action="ForgotPassword" asp-controller="Account">Reset here</a>
         </p>
     </div>
     <button type="submit" class="btn btn-outline-primary btn-sm">Log In</button>

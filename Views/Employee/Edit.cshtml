@@ -15,7 +15,13 @@
     <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
-<form asp-action="Edit" method="post">
+@if (!string.IsNullOrEmpty(Model.ImagePath))
+{
+    <p><strong>Current Image:</strong></p>
+    <img src="@Model.ImagePath" alt="Current Image" class="img-thumbnail" style="width: 150px; height: 150px;" />
+}
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <input asp-for="Email" type="hidden" />
     <input type="hidden" asp-for="Id" />
@@ -61,6 +67,22 @@
         </div>
     </div>
 
+    <div class="col-md-6">
+        <div class="form-group mb-3">
+            <label asp-for="Image" class="form-label">Profile Picture</label>
+            <input asp-for="Image" class="form-control" type="file" />
+            <span asp-validation-for="Image" class="text-danger"></span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ImagePath))
+        {
+            <div class="mt-2">
+                <img src="@Model.ImagePath" alt="Employee Image" style="max-height: 150px;" />
+            </div>
+        }
+    </div>
+
+
     <div class="form-group">
         <button type="submit" class="btn btn-success">Update Employee</button>
         <a asp-action="Index" class="btn btn-secondary">Cancel</a>
@@ -68,5 +90,7 @@
 </form>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

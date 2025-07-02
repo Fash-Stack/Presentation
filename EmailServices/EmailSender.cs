@@ -31,4 +31,3 @@ public class EmailSender : IEmailSender
         await smtp.DisconnectAsync(true);
     }
 }
-

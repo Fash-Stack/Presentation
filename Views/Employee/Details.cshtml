@@ -11,6 +11,25 @@
         <h4>@Model.FirstName @Model.LastName</h4>
     </div>
     <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <strong>Profile Image:</strong>
+                <img src="@Model.ImageUrl" alt="Profile Image" class="img-thumbnail" style="width: 100px; height: 100px;" />
+
+                <a asp-action="EditImage" asp-route-id="@Model.Id" class="btn btn-sm btn-warning">Edit Image</a>
+
+                <form asp-action="DeleteImage" asp-route-id="@Model.Id" method="post" class="d-inline"
+                    onsubmit="return confirm('Are you sure you want to delete this image?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete Image</button>
+                </form>
+            </div>
+        }
+        else
+        {
+            <p>No Profile Image Available.</p>
+        }
+
         <dl class="row">
             <dt class="col-sm-3">First Name:</dt>
             <dd class="col-sm-9">@Model.FirstName</dd>
@@ -36,10 +55,36 @@
             <dt class="col-sm-3">Salary:</dt>
             <dd class="col-sm-9">@Model.Salary.ToString("C")</dd>
         </dl>
+
+        <h3>Address Information</h3>
+
+        @if (Model.Address != null && Model.Address.Id != Guid.Empty)
+        {
+            <p>Street: @Model.Address.Street</p>
+            <p>City: @Model.Address.City</p>
+            <p>State: @Model.Address.State</p>
+            <p>Country: @Model.Address.Country</p>
+
+            <a asp-controller="Address" asp-action="Update" asp-route-employeeId="@Model.Id"
+                class="btn btn-primary btn-sm">Edit Address</a>
+            <form asp-controller="Address" asp-action="Delete" asp-route-employeeId="@Model.Id" method="post"
+                style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Delete Address</button>
+            </form>
+        }
+        else
+        {
+            <div class="card-body">
+                <p>No address on file.</p>
+                <a asp-controller="Address" asp-action="Create" asp-route-employeeId="@Model.Id" class="btn btn-success">Add
+                    Address</a>
+            </div>
+        }
+
+
+        <div class="card-footer">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+            <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+        </div>
     </div>
-    <div class="card-footer">
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
-        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
-        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
-    </div>
-</div>

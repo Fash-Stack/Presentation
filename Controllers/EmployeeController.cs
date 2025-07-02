@@ -8,6 +8,9 @@ using Presentation.Models;
 using Application.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Application.Services.Department;
+using CloudinaryDotNet.Actions;
+using CloudinaryDotNet;
+using Application.Services.Address;
 
 namespace Presentation.Controllers;
 
@@ -18,13 +21,19 @@ public class EmployeeController : BaseController
     private readonly IEmployeeService _employeeService;
     private readonly EmployeeAppDbContext _context;
     private readonly ILogger<EmployeeController> _logger;
+    private readonly Cloudinary _cloudinary;
+    private readonly IAddressService _addressService;
 
-    public EmployeeController(IEmployeeService employeeService, IDepartmentService departmentService, EmployeeAppDbContext employeeAppDbContext, ILogger<EmployeeController> logger)
+    public EmployeeController(IEmployeeService employeeService,
+     IDepartmentService departmentService, EmployeeAppDbContext employeeAppDbContext,
+      ILogger<EmployeeController> logger, Cloudinary cloudinary, IAddressService addressService)
     {
-        _departmentService = departmentService;
         _employeeService = employeeService;
+        _departmentService = departmentService;
         _context = employeeAppDbContext;
         _logger = logger;
+        _cloudinary = cloudinary;
+        _addressService = addressService;
     }
 
     public async Task<IActionResult> Index()
@@ -46,10 +55,34 @@ public class EmployeeController : BaseController
             return NotFound();
         }
 
-        return View(employee.ToViewModel());
+        var address = await _addressService.GetAddressByEmployeeIdAsync(id);
+
+        var viewModel = new EmployeeViewModel
+        {
+            Id = employee.Id,
+            ImageUrl = employee.ImageUrl,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            Email = employee.Email,
+            PhoneNumber = employee.PhoneNumber,
+            Department = employee.Department!,
+            Position = employee.Position!,
+            Salary = (decimal)employee.Salary!,
+            IsActive = employee.IsActive,
+            Address = address != null ? new AddressViewModel
+            {
+                Id = address.Id,
+                EmployeeId = address.EmployeeId,
+                Street = address.Street,
+                City = address.City,
+                State = address.State,
+                Country = address.Country
+            } : new AddressViewModel()
+        };
+
+        return View(viewModel);
     }
 
-    [HttpGet]
     public async Task<IActionResult> Create()
     {
         var viewModel = new EmployeeViewModel
@@ -144,9 +177,9 @@ public class EmployeeController : BaseController
                 PhoneNumber = employee.PhoneNumber,
                 Position = employee.Position ?? "",
                 Salary = employee.Salary ?? 0,
-                Department = departments.Departments
-                    .FirstOrDefault(d => d.Id == employee.DepartmentId)?.Name ?? "", // get name from ID
-                IsActive = employee.IsActive
+                Department = departments.Departments.FirstOrDefault(d => d.Id == employee.DepartmentId)?.Name ?? "",
+                IsActive = employee.IsActive,
+                ImageUrl = employee.ImageUrl,
             };
 
             ViewBag.Department = departments.Departments.Select(d => d.Name).ToList();
@@ -160,6 +193,7 @@ public class EmployeeController : BaseController
         }
     }
 
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, EmployeeViewModel model)
@@ -168,17 +202,42 @@ public class EmployeeController : BaseController
         {
             return BadRequest();
         }
+
         try
         {
             var departments = await _departmentService.GetDepartmentsForDropdownAsync();
 
-            var selectedDepartment = departments.FirstOrDefault(d => d.Name.Trim().ToLower() == model.Department.Trim().ToLower());
+            var selectedDepartment = departments
+                .FirstOrDefault(d => string.Equals(d.Name, model.Department, StringComparison.OrdinalIgnoreCase));
 
             if (selectedDepartment == null)
             {
                 TempData["Error"] = "Selected department not found.";
                 ViewBag.Department = departments.Select(d => d.Name).ToList();
                 return View(model);
+            }
+
+            string imageUrl = model.ImagePath ?? "";
+
+            if (model.Image != null && model.Image.Length > 0)
+            {
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(model.Image.FileName, model.Image.OpenReadStream())
+                };
+
+                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+                if (uploadResult.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    imageUrl = uploadResult.SecureUrl.AbsoluteUri;
+                }
+                else
+                {
+                    TempData["Error"] = "Image upload failed.";
+                    ViewBag.Department = departments.Select(d => d.Name).ToList();
+                    return View(model);
+                }
             }
 
             var employeeDto = new EmployeeDto
@@ -189,7 +248,8 @@ public class EmployeeController : BaseController
                 Position = model.Position,
                 Salary = model.Salary,
                 DepartmentId = selectedDepartment.Id,
-                IsActive = model.IsActive
+                IsActive = model.IsActive,
+                ImageUrl = imageUrl,
             };
 
             var updatedEmployee = await _employeeService.UpdateEmployeeAsync(employeeDto);
@@ -206,12 +266,11 @@ public class EmployeeController : BaseController
         {
             TempData["Error"] = $"Error updating employee: {ex.Message}";
             var departments = await _departmentService.GetDepartmentsForDropdownAsync();
-            ViewBag.department = departments.Select(d => d.Name).ToList();
+            ViewBag.Department = departments.Select(d => d.Name).ToList();
             return View(model);
         }
     }
 
-    [HttpGet]
     public async Task<IActionResult> Delete(Guid id)
     {
         var employee = await _context.Employees
@@ -228,18 +287,17 @@ public class EmployeeController : BaseController
             FirstName = employee.FirstName,
             LastName = employee.LastName,
             Email = employee.Email,
-            Position = employee.Position,
+            Position = employee.Position!,
             IsActive = employee.IsActive,
             DepartmentId = employee.DepartmentId,
             Department = (await _context.Departments
                             .Where(d => d.Id == employee.DepartmentId)
                             .Select(d => d.Name)
-                            .FirstOrDefaultAsync()) ?? "Unknown"
+                            .FirstOrDefaultAsync()) ?? "Unknown",
         };
 
         return View(viewModel);
     }
-
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
@@ -259,7 +317,6 @@ public class EmployeeController : BaseController
         return RedirectToAction("Index");
     }
 
-
     private async Task<List<SelectListItem>> GetDepartmentSelectListAsync()
     {
         var employees = await _context.Departments
@@ -272,6 +329,62 @@ public class EmployeeController : BaseController
             Value = d.Name,
             Text = d.Name
         }).ToList();
+    }
+
+    public async Task<IActionResult> EditImage(Guid id)
+    {
+        var employee = await _employeeService.GetEmployeeByIdAsync(id);
+        if (employee == null)
+            return NotFound();
+
+        var viewModel = new EmployeeViewModel
+        {
+            Id = employee.Id,
+            ImageUrl = employee.ImageUrl
+        };
+
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditImage(Guid id, EmployeeViewModel model)
+    {
+        if (model.Image == null || model.Image.Length == 0)
+        {
+            TempData["Error"] = "Please select an image.";
+            return View(model);
+        }
+
+        var uploadParams = new ImageUploadParams
+        {
+            File = new FileDescription(model.Image.FileName, model.Image.OpenReadStream())
+        };
+
+        var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+        if (uploadResult.StatusCode == System.Net.HttpStatusCode.OK)
+        {
+            await _employeeService.UpdateEmployeeImageAsync(id, uploadResult.SecureUrl.AbsoluteUri);
+            TempData["Success"] = "Image updated successfully.";
+            return RedirectToAction("Details", new { id });
+        }
+
+        TempData["Error"] = "Image upload failed.";
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteImage(Guid id)
+    {
+        var employee = await _employeeService.GetEmployeeByIdAsync(id);
+        if (employee == null)
+            return NotFound();
+
+        await _employeeService.UpdateEmployeeImageAsync(id, null);  
+        TempData["Success"] = "Image deleted successfully.";
+        return RedirectToAction("Details", new { id });
     }
 
 }

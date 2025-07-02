@@ -45,13 +45,15 @@ public class EmployeeViewModel
     [Display(Name = "Department Name")]
     [Required(ErrorMessage = "Department is required")]
     public Guid? DepartmentId { get; set; }
-
     public string Department { get; set; } = string.Empty;
 
     [Display(Name = "Active")]
     public bool IsActive { get; set; } = true;
-
-    public List<SelectListItem> DepartmentSelectList { get; set; } = new List<SelectListItem>();
+    public AddressViewModel? Address { get; set; }
+    public IFormFile? Image { get; set; } = default!;
+    public string ImagePath { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public List<SelectListItem> DepartmentSelectList { get; set; } = [];
 }
 
 public class EmployeesViewModel
