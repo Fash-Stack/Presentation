@@ -78,7 +78,6 @@ builder.Services.AddSingleton(provider =>
 
 builder.Services.AddScoped<IAddressService, AddressService>();
 
-
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -86,6 +85,9 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+builder.Services.AddSession();
+app.UseSession();
 
 app.UseStaticFiles(); 
 

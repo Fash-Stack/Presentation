@@ -1,0 +1,15 @@
+﻿<h2>Two-Factor Authentication</h2>
+
+<form method="post">
+    <div>
+        <label>Enter the 6-digit code sent to your email:</label>
+        <input type="text" name="code" required class="form-control" />
+    </div>
+    <br />
+    <button type="submit" class="btn btn-primary">Verify</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <p style="color:red;">Invalid code. Please try again.</p>
+}

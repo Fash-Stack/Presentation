@@ -60,17 +60,19 @@
 
         @if (Model.Address != null && Model.Address.Id != Guid.Empty)
         {
-            <p>Street: @Model.Address.Street</p>
-            <p>City: @Model.Address.City</p>
-            <p>State: @Model.Address.State</p>
-            <p>Country: @Model.Address.Country</p>
+            <div class="mb-3">
+                <p>Street: @Model.Address.Street</p>
+                <p>City: @Model.Address.City</p>
+                <p>State: @Model.Address.State</p>
+                <p>Country: @Model.Address.Country</p>
 
-            <a asp-controller="Address" asp-action="Update" asp-route-employeeId="@Model.Id"
-                class="btn btn-primary btn-sm">Edit Address</a>
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
-                onsubmit="return confirm('Are you sure you want to delete this Adress?');">
-                <button type="submit" class="btn btn-sm btn-danger">Delete Address</button>
-            </form>
+                <a asp-controller="Address" asp-action="Update" asp-route-employeeId="@Model.Id"
+                    class="btn btn-primary btn-sm">Edit Address</a>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                    onsubmit="return confirm('Are you sure you want to delete this Adress?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete Address</button>
+                </form>
+            </div>
         }
         else
         {
@@ -87,4 +89,4 @@
             <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
             <a asp-action="Index" class="btn btn-secondary">Back to List</a>
         </div>
-    </div>
+</div>

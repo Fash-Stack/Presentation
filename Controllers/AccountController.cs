@@ -137,9 +137,26 @@ namespace Presentation.Controllers
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }
 
-            return View(model);
-        }
+            if (user.TwoFactorEnabled)
+            {
+                // Generate 6-digit code
+                var code = new Random().Next(100000, 999999).ToString();
 
+                // Store code and user ID in session
+                HttpContext.Session.SetString("2FACode", code);
+                HttpContext.Session.SetString("2FAUserId", user.Id);
+
+                // Send code to user's email
+                await _emailSender
+                    .To(user.Email)
+                    .Subject("Your 2FA Code")
+                    .Body($"Your Two-Factor Authentication code is: {code}")
+                    .SendAsync();
+
+                return RedirectToAction("Verify2FA");
+                return View(model);
+            }
+        }
         public async Task<IActionResult> LogOut()
         {
             await _signInManager.SignOutAsync();
@@ -303,33 +320,35 @@ namespace Presentation.Controllers
             return View(model);
         }
 
-        //     public IActionResult AddAddress(Guid id)
-        //     {
-        //         var model = new AddressViewModel { EmployeeId = id };
-        //         return View(model);
-        //     }
+        public IActionResult Verify2FA()
+        {
+            return View();
+        }
 
-        //     [HttpPost]
-        //     public async Task<IActionResult> AddAddress(AddressViewModel model)
-        //     {
-        //         if (ModelState.IsValid)
-        //         {
-        //             var address = new EmployeeAddress
-        //             {
-        //                 State = model.State,
-        //                 City = model.City,
-        //                 Street = model.Street,
-        //                 EmployeeId = model.EmployeeId
-        //             };
+        [HttpPost]
+        public async Task<IActionResult> Verify2FA(string code)
+        {
+            var expectedCode = HttpContext.Session.GetString("2FACode");
+            var userId = HttpContext.Session.GetString("2FAUserId");
 
-        //             _context.Add(address);
-        //             await _context.SaveChangesAsync();
-        //             return RedirectToAction("Details", new { id = model.EmployeeId });
-        //         }
+            if (code == expectedCode && !string.IsNullOrEmpty(userId))
+            {
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user != null)
+                {
+                    await _signInManager.SignInAsync(user, isPersistent: false);
 
-        //         return View(model);
-        //     }
+                    // Clear session values
+                    HttpContext.Session.Remove("2FACode");
+                    HttpContext.Session.Remove("2FAUserId");
 
-        // }
+                    return RedirectToAction("Index", "Home");
+                }
+            }
+
+            ModelState.AddModelError("", "Invalid code. Please try again.");
+            return View();
+        }
+
     }
 }
