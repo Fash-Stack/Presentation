@@ -17,6 +17,8 @@ namespace Presentation.Controllers
         private readonly IEmailSender _emailSender;
         private readonly EmployeeAppDbContext _context;
 
+
+
         public AccountController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IEmailSender emailSender, EmployeeAppDbContext context)
         {
             _userManager = userManager;
@@ -147,15 +149,16 @@ namespace Presentation.Controllers
                 HttpContext.Session.SetString("2FAUserId", user.Id);
 
                 // Send code to user's email
-                await _emailSender
-                    .To(user.Email)
-                    .Subject("Your 2FA Code")
-                    .Body($"Your Two-Factor Authentication code is: {code}")
-                    .SendAsync();
+                await _emailSender.SendEmailAsync(
+                    user.Email,
+                    "Your 2FA Code",
+                    $"Your Two-Factor Authentication code is: {code}");
 
                 return RedirectToAction("Verify2FA");
-                return View(model);
             }
+
+            await _signInManager.SignInAsync(user, isPersistent: false);
+            return RedirectToAction("Index", "Home");
         }
         public async Task<IActionResult> LogOut()
         {
@@ -349,6 +352,5 @@ namespace Presentation.Controllers
             ModelState.AddModelError("", "Invalid code. Please try again.");
             return View();
         }
-
     }
 }

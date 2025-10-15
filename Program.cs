@@ -78,6 +78,8 @@ builder.Services.AddSingleton(provider =>
 
 builder.Services.AddScoped<IAddressService, AddressService>();
 
+builder.Services.AddSession();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -85,9 +87,6 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
-builder.Services.AddSession();
-app.UseSession();
 
 app.UseStaticFiles(); 
 
@@ -121,6 +120,12 @@ using (var scope = app.Services.CreateScope())
     {
         await roleManager.CreateAsync(new IdentityRole("User"));
     }
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<EmployeeAppDbContext>();
+    Console.WriteLine("Database connection successful!");
 }
 
 app.Run();
